@@ -1,0 +1,89 @@
+import streamlit as st
+import openai
+import os
+from dotenv import load_dotenv
+
+# Load environment variables locally (optional for local testing)
+load_dotenv()
+
+# Use Streamlit secrets to get the OpenAI API key
+api_key = st.secrets.get("OPENAI_API_KEY")
+
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=api_key)
+
+st.set_page_config(page_title="Marie AI – Your Support Companion", page_icon="💬")
+st.title("💬 Marie AI – Your Mental Health Support Companion")
+
+# Add custom style to look like iMessage/WhatsApp
+st.markdown("""
+<style>
+.user-bubble {
+    background-color: #DCF8C6;
+    color: black;
+    padding: 10px 14px;
+    border-radius: 18px;
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: 0;
+    margin-bottom: 8px;
+    display: block;
+}
+.bot-bubble {
+    background-color: #E6E6EB;
+    color: black;
+    padding: 10px 14px;
+    border-radius: 18px;
+    max-width: 80%;
+    margin-right: auto;
+    margin-left: 0;
+    margin-bottom: 8px;
+    display: block;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Language and tone selectors
+language = st.selectbox("Choose your language / Sprache wählen:", ["English", "Deutsch"])
+tone = st.selectbox("Choose Marie AI's personality:", ["Gentle", "Motivational", "Friendly", "Empathic"])
+
+# Ask for user's name
+if "user_name" not in st.session_state:
+    st.session_state.user_name = st.text_input("What's your name? / Wie heißt du?", key="name_input")
+
+# System prompt with language and tone
+if "messages" not in st.session_state:
+    system_prompt = {
+        "English": f"You are Marie AI, a {tone.lower()} mental health chatbot. You offer supportive, compassionate conversations but never give diagnoses. Address users by their name when known.",
+        "Deutsch": f"Du bist Marie AI, ein {tone.lower()}er Chatbot für psychische Gesundheit. Du bietest unterstützende, einfühlsame Gespräche, gibst aber niemals Diagnosen. Sprich die Person mit Namen an, wenn bekannt."
+    }
+    st.session_state.messages = [{"role": "system", "content": system_prompt[language]}]
+
+# Get user input
+user_input = st.text_input("How are you feeling today? / Wie fühlst du dich heute?", key="input")
+
+if user_input:
+    name = st.session_state.user_name or "friend"
+    input_with_name = f"My name is {name}. {user_input}"
+    st.session_state.messages.append({"role": "user", "content": input_with_name})
+
+    # Check for emergency
+    if any(word in user_input.lower() for word in ["suicide", "kill myself", "mich umbringen", "end my life"]):
+        st.warning("Please contact a professional or visit https://findahelpline.com for help.")
+
+    # Get Marie AI's response
+    with st.spinner("Marie AI is thinking..."):
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=st.session_state.messages
+        )
+        reply = response.choices[0].message.content
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+
+# Display chat messages in styled bubbles
+for msg in st.session_state.messages[1:]:
+    role = msg["role"]
+    if role == "user":
+        st.markdown(f"<div class='user-bubble'>{msg['content']}</div>", unsafe_allow_html=True)
+    elif role == "assistant":
+        st.markdown(f"<div class='bot-bubble'>{msg['content']}</div>", unsafe_allow_html=True)
