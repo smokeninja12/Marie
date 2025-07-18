@@ -51,7 +51,7 @@ response = client.chat.completions.create(
 )
 
 reply = response.choices[0].message.content
-        st.session_state.messages.append({"role": "assistant", "content": reply})
+st.session_state.messages.append({"role": "assistant", "content": reply})
 
 # Show chat history
 st.markdown("### 💬 Conversation with Marie AI:")
