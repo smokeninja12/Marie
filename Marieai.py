@@ -50,7 +50,7 @@ response = client.chat.completions.create(
     messages=st.session_state.messages
 )
 
-reply = response.choices[0].message.
+reply = response.choices[0].message.content
         st.session_state.messages.append({"role": "assistant", "content": reply})
 
 # Show chat history
